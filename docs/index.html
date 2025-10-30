@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Сапёр МШП</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="app-header">
+      <h1>Сапёр МШП</h1>
+    </header>
+
+    <main class="app-main" role="main">
+      <section class="info-panel" aria-live="polite">
+        <div id="messages" class="messages" role="status"></div>
+        <div class="status" aria-label="Показатели партии">
+          <div class="status-item" id="timer">⏱️ 00:00</div>
+          <div class="status-item" id="mines-remaining">💣 0</div>
+          <div class="status-item" id="parameters"></div>
+        </div>
+        <button id="reset-button" type="button" class="reset-button">Начать заново</button>
+      </section>
+
+      <section class="board-section">
+        <div id="board" class="board" role="grid" aria-label="Игровое поле сапёра"></div>
+      </section>
+    </main>
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
