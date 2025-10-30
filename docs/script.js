@@ -229,12 +229,107 @@
       mineLayout[availableIndexes[i]] = true;
     }
 
+    ensureCornerNearFirst(firstIndex, protectedIndexes);
+
     if (activeMines !== previousActiveMines) {
       updateMinesCounter();
     }
 
+    recalculateAdjacentCounts();
+  }
+
+  function ensureCornerNearFirst(firstIndex, protectedIndexes) {
+    const firstX = firstIndex % config.width;
+    const firstY = Math.floor(firstIndex / config.width);
+    const cornerOffsets = [
+      { dx: -1, dy: -1 },
+      { dx: 1, dy: -1 },
+      { dx: -1, dy: 1 },
+      { dx: 1, dy: 1 },
+    ];
+
+    const cornerIndexes = [];
+    for (const { dx, dy } of cornerOffsets) {
+      const cx = firstX + dx;
+      const cy = firstY + dy;
+      if (cx < 0 || cx >= config.width || cy < 0 || cy >= config.height) {
+        continue;
+      }
+      const cornerIndex = cy * config.width + cx;
+      if (protectedIndexes.has(cornerIndex)) {
+        cornerIndexes.push(cornerIndex);
+      }
+    }
+
+    if (cornerIndexes.length === 0) {
+      return;
+    }
+
+    const hasCornerWithMine = cornerIndexes.some((cornerIndex) => {
+      const neighbors = getNeighborIndexes(cornerIndex);
+      for (const neighbor of neighbors) {
+        if (mineLayout[neighbor]) {
+          return true;
+        }
+      }
+      return false;
+    });
+
+    if (hasCornerWithMine) {
+      return;
+    }
+
+    const candidateTargets = new Set();
+    for (const cornerIndex of cornerIndexes) {
+      const neighbors = getNeighborIndexes(cornerIndex);
+      for (const neighbor of neighbors) {
+        if (!protectedIndexes.has(neighbor)) {
+          candidateTargets.add(neighbor);
+        }
+      }
+    }
+
+    const availableTargets = Array.from(candidateTargets).filter(
+      (index) => !mineLayout[index]
+    );
+
+    if (availableTargets.length === 0) {
+      return;
+    }
+
+    const targetIndex =
+      availableTargets[Math.floor(Math.random() * availableTargets.length)];
+
+    const currentMines = [];
     for (let i = 0; i < totalCells; i += 1) {
       if (mineLayout[i]) {
+        currentMines.push(i);
+      }
+    }
+
+    let mineToMove = null;
+    for (const mineIndex of currentMines) {
+      if (mineIndex === targetIndex) {
+        continue;
+      }
+      mineToMove = mineIndex;
+      if (!candidateTargets.has(mineIndex)) {
+        break;
+      }
+    }
+
+    if (mineToMove === null) {
+      return;
+    }
+
+    mineLayout[mineToMove] = false;
+    mineLayout[targetIndex] = true;
+  }
+
+  function recalculateAdjacentCounts() {
+    for (let i = 0; i < totalCells; i += 1) {
+      if (mineLayout[i]) {
+        adjacentCounts[i] = 0;
         continue;
       }
       const neighbors = getNeighborIndexes(i);
