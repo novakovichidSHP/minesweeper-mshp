@@ -58,7 +58,9 @@
     showMessage('Готовы к игре! Нажмите на любую клетку, чтобы начать.');
   }
   parametersEl.textContent = paramInfo.text;
-  updateMinesDisplay(config.mines);
+  let activeMines = config.mines;
+
+  updateMinesDisplay(activeMines);
 
   resetButton.addEventListener('click', () => {
     resetGame();
@@ -194,17 +196,41 @@
     mineLayout = new Array(totalCells).fill(false);
     adjacentCounts = new Array(totalCells).fill(0);
 
+    const neighborsOfFirst = getNeighborIndexes(firstIndex);
+    const protectedIndexes = new Set([firstIndex, ...neighborsOfFirst]);
+
     const availableIndexes = [];
     for (let i = 0; i < totalCells; i += 1) {
-      if (i !== firstIndex) {
+      if (!protectedIndexes.has(i)) {
         availableIndexes.push(i);
       }
     }
 
     shuffleArray(availableIndexes);
-    const selected = availableIndexes.slice(0, config.mines);
-    for (const mineIndex of selected) {
-      mineLayout[mineIndex] = true;
+
+    const desiredMines = Math.min(config.mines, totalCells - 1);
+    const maxMinesOutsideProtected = availableIndexes.length;
+    const previousActiveMines = activeMines;
+    activeMines = Math.min(desiredMines, maxMinesOutsideProtected);
+
+    if (desiredMines > maxMinesOutsideProtected) {
+      const previousMessage = messagesEl.textContent
+        ? messagesEl.textContent.trim()
+        : '';
+      const reductionMessage =
+        `Количество мин было уменьшено до ${activeMines}, чтобы обеспечить безопасный первый ход.`;
+      const combinedMessage = previousMessage
+        ? `${previousMessage} ${reductionMessage}`
+        : reductionMessage;
+      showMessage(combinedMessage);
+    }
+
+    for (let i = 0; i < activeMines; i += 1) {
+      mineLayout[availableIndexes[i]] = true;
+    }
+
+    if (activeMines !== previousActiveMines) {
+      updateMinesCounter();
     }
 
     for (let i = 0; i < totalCells; i += 1) {
@@ -312,7 +338,7 @@
   }
 
   function checkWinCondition() {
-    if (revealedCells === totalCells - config.mines) {
+    if (revealedCells === totalCells - activeMines) {
       gameState = 'won';
       stopTimer();
       showMessage(`Победа! Время: ${formatTime(elapsedSeconds)}.`, 'win');
@@ -337,7 +363,8 @@
     mineLayout = new Array(totalCells).fill(false);
     adjacentCounts = new Array(totalCells).fill(0);
     showMessage('Новая партия началась. Удачи!');
-    updateMinesDisplay(config.mines);
+    activeMines = config.mines;
+    updateMinesDisplay(activeMines);
 
     for (const cell of cellElements) {
       cell.className = 'cell hidden';
@@ -376,7 +403,7 @@
   }
 
   function updateMinesCounter() {
-    const remaining = Math.max(0, config.mines - flagsPlaced);
+    const remaining = Math.max(0, activeMines - flagsPlaced);
     updateMinesDisplay(remaining);
   }
 
