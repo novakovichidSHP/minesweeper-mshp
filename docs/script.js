@@ -34,6 +34,7 @@
   const mainEl = document.querySelector('.app-main');
   const appShellEl = document.querySelector('.app-shell');
   const boardSectionEl = document.querySelector('.board-section');
+  const isDesktopDevice = window.matchMedia('(hover: hover) and (pointer: fine)').matches;
 
   const { config, warnings: configWarnings } = parseConfigFromUrl();
   let totalCells = config.width * config.height;
@@ -49,6 +50,8 @@
   let timerId = null;
   let elapsedSeconds = 0;
   let gameState = 'ready';
+  let interactionMode = 'reveal';
+  let modeToggleButton = null;
 
   const paramInfo = renderParameters(config);
   const combinedWarnings = [...configWarnings, ...paramInfo.warnings];
@@ -65,6 +68,10 @@
   resetButton.addEventListener('click', () => {
     resetGame();
   });
+
+  if (!isDesktopDevice) {
+    initializeModeToggle();
+  }
 
   initializeBoard();
   resizeBoard();
@@ -162,6 +169,11 @@
     }
 
     if (gameState === 'lost' || gameState === 'won') {
+      return;
+    }
+
+    if (!isDesktopDevice && interactionMode === 'flag') {
+      toggleFlag(index);
       return;
     }
 
@@ -461,12 +473,55 @@
     activeMines = config.mines;
     updateMinesDisplay(activeMines);
 
+    if (!isDesktopDevice) {
+      interactionMode = 'reveal';
+      updateModeToggle();
+    }
+
     for (const cell of cellElements) {
       cell.className = 'cell hidden';
       cell.textContent = HIDDEN_SYMBOL;
       cell.removeAttribute('data-number');
       cell.setAttribute('aria-label', 'Закрытая клетка');
     }
+  }
+
+  function initializeModeToggle() {
+    if (!infoPanelEl) {
+      return;
+    }
+
+    modeToggleButton = document.createElement('button');
+    modeToggleButton.type = 'button';
+    modeToggleButton.className = 'mode-toggle';
+    modeToggleButton.addEventListener('click', () => {
+      interactionMode = interactionMode === 'reveal' ? 'flag' : 'reveal';
+      updateModeToggle();
+    });
+
+    infoPanelEl.insertBefore(modeToggleButton, resetButton);
+    updateModeToggle();
+  }
+
+  function updateModeToggle() {
+    if (!modeToggleButton) {
+      return;
+    }
+
+    const isFlagMode = interactionMode === 'flag';
+    modeToggleButton.textContent = isFlagMode ? '🚩' : '👆';
+    modeToggleButton.setAttribute('aria-pressed', String(isFlagMode));
+    modeToggleButton.setAttribute(
+      'aria-label',
+      isFlagMode
+        ? 'Режим установки флажков. Нажмите, чтобы переключиться на открытие клеток.'
+        : 'Режим открытия клеток. Нажмите, чтобы переключиться на установку флажков.'
+    );
+    modeToggleButton.setAttribute(
+      'title',
+      isFlagMode ? 'Установка флажков' : 'Открытие клеток'
+    );
+    modeToggleButton.classList.toggle('mode-toggle--flag', isFlagMode);
   }
 
   function getNeighborIndexes(index) {
